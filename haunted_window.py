@@ -5,6 +5,7 @@ import time
 from PIL import Image, ImageTk
 import os
 import pygame  # For sound effects
+import subprocess
 
 class HauntedWindow:
     def __init__(self):
@@ -26,6 +27,9 @@ class HauntedWindow:
         self.root.attributes('-topmost', True)
         self.root.configure(bg='black')
         
+        # Keep window focused
+        self.root.focus_force()
+        
         # Flag for exit
         self.should_exit = False
         
@@ -43,8 +47,6 @@ class HauntedWindow:
         
         # Store image references to prevent garbage collection
         self.images = []
-        self.ghost_images = []
-        self.ghost_images_original = []  # Store original PIL images for fading
         self.jumpscare_image = None
         
         # Load sounds
@@ -63,6 +65,7 @@ class HauntedWindow:
         self.background_sound = None
         self.ghost_sound = None
         self.jumpscare_sound = None
+        self.keyboard_sound = None
         
         # Try to load background music (for ghost phase)
         bg_path = os.path.join(sounds_folder, 'background.mp3')
@@ -90,6 +93,15 @@ class HauntedWindow:
                 print("Loaded jumpscare.mp3")
             except Exception as e:
                 print(f"Error loading jumpscare sound: {e}")
+        
+        # Try to load keyboard sound
+        keyboard_path = os.path.join(sounds_folder, 'keyboard.mp3')
+        if os.path.exists(keyboard_path):
+            try:
+                self.keyboard_sound = pygame.mixer.Sound(keyboard_path)
+                print("Loaded keyboard.mp3")
+            except Exception as e:
+                print(f"Error loading keyboard sound: {e}")
     
     def play_sound(self, sound_type):
         """Play a specific sound"""
@@ -101,6 +113,8 @@ class HauntedWindow:
                 self.ghost_sound.play()
             elif sound_type == 'jumpscare' and self.jumpscare_sound:
                 self.jumpscare_sound.play()
+            elif sound_type == 'keyboard' and self.keyboard_sound:
+                self.keyboard_sound.play()
         except Exception as e:
             print(f"Error playing sound: {e}")
     
@@ -113,211 +127,37 @@ class HauntedWindow:
     
     def exit_program(self):
         """Safely exit the program"""
+        if self.should_exit:
+            return  # Already exiting
         self.should_exit = True
         self.stop_sound()
-        pygame.quit()
+        try:
+            pygame.quit()
+        except:
+            pass
         self.root.quit()
     
     def check_for_escape(self):
         """Check if escape key is pressed using pygame"""
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                self.exit_program()
-                return True
+        if self.should_exit:
+            return True
+        
+        # Periodically reclaim focus to ensure ESC works
+        try:
+            if not self.root.focus_get():
+                self.root.focus_force()
+        except:
+            pass
+        
+        try:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    self.exit_program()
+                    return True
+        except:
+            pass
         return False
         
-    def show_haunted_text(self):
-        """Display 'HAUNTED!!!' in red for 3 seconds"""
-        # Temporarily disable click-through for this screen
-        self.root.wm_attributes('-disabled', False)
-        
-        self.canvas.delete('all')
-        self.canvas.configure(bg='black')
-        
-        # Create large red text
-        self.canvas.create_text(
-            self.screen_width // 2,
-            self.screen_height // 2,
-            text="HAUNTED!!!",
-            font=("Arial", 120, "bold"),
-            fill="red",
-            tags="haunted_text"
-        )
-        
-        self.root.update()
-        
-        # Wait 3 seconds while checking for escape
-        start_time = time.time()
-        while time.time() - start_time < 3:
-            if self.check_for_escape() or self.should_exit:
-                return
-            time.sleep(0.1)
-            self.root.update()
-        
-        self.canvas.delete('all')
-        
-        # Re-enable click-through for ghost phase
-        self.root.wm_attributes('-disabled', True)
-    
-    def load_ghost_images(self):
-        """Load ghost images from the images folder"""
-        images_folder = os.path.join(os.path.dirname(__file__), 'ghost_images')
-        
-        # Create folder if it doesn't exist
-        if not os.path.exists(images_folder):
-            os.makedirs(images_folder)
-            print(f"Please add ghost images to: {images_folder}")
-            # Create placeholder images if no images exist
-            self.create_placeholder_ghosts()
-            return
-        
-        # Load all image files from the folder
-        for filename in os.listdir(images_folder):
-            # Skip jumpscare.jpg - it's reserved for the jumpscare only
-            if filename.lower() == 'jumpscare.jpg':
-                continue
-                
-            if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):
-                try:
-                    img_path = os.path.join(images_folder, filename)
-                    img = Image.open(img_path)
-                    # Resize to reasonable size
-                    img = img.resize((200, 200), Image.Resampling.LANCZOS)
-                    
-                    # Convert to RGBA if not already
-                    if img.mode != 'RGBA':
-                        img = img.convert('RGBA')
-                    
-                    # Store original image for fading
-                    self.ghost_images_original.append(img.copy())
-                    
-                    # Create default translucent version
-                    alpha = img.split()[3]
-                    alpha = alpha.point(lambda p: int(p * 0.6))
-                    img.putalpha(alpha)
-                    
-                    photo = ImageTk.PhotoImage(img)
-                    self.ghost_images.append(photo)
-                except Exception as e:
-                    print(f"Error loading {filename}: {e}")
-        
-        # If no images loaded, create placeholders
-        if not self.ghost_images:
-            self.create_placeholder_ghosts()
-    
-    def create_ghost_at_opacity(self, image_index, opacity):
-        """Create a ghost image at a specific opacity level (0.0 to 1.0)"""
-        if image_index >= len(self.ghost_images_original):
-            return None
-        
-        img = self.ghost_images_original[image_index].copy()
-        alpha = img.split()[3]
-        alpha = alpha.point(lambda p: int(p * opacity))
-        img.putalpha(alpha)
-        return ImageTk.PhotoImage(img)
-    
-    def create_placeholder_ghosts(self):
-        """Create simple ghost shapes as placeholders"""
-        # We'll use text-based ghosts as simple placeholders
-        for i in range(5):
-            # Create a small canvas for each ghost
-            ghost_canvas = tk.Canvas(self.root, width=100, height=100, 
-                                    bg='black', highlightthickness=0)
-            
-            # Draw a simple ghost shape
-            ghost_canvas.create_oval(20, 20, 80, 80, fill='white', outline='')
-            ghost_canvas.create_text(50, 50, text="👻", font=("Arial", 40))
-            
-            # Convert to PhotoImage
-            ghost_canvas.update()
-            self.ghost_images.append("👻")
-    
-    def show_random_ghosts(self, duration=3):
-        """Display random ghost images for specified duration with fade in/out effects"""
-        self.canvas.delete('all')
-        self.canvas.configure(bg='black')
-        
-        # Play background music
-        self.play_sound('background')
-        
-        start_time = time.time()
-        active_ghosts = []  # Store: (img_id, spawn_time, x, y, image_index, photo_ref)
-        fade_duration = 1.0  # Seconds for fade in/out
-        
-        while time.time() - start_time < duration:
-            # Check for escape key
-            if self.check_for_escape() or self.should_exit:
-                break
-                
-            current_time = time.time()
-            
-            # Spawn new ghost randomly
-            if random.random() < 0.03:  # 3% chance each iteration (very slow appearance rate)
-                x = random.randint(50, self.screen_width - 50)
-                y = random.randint(50, self.screen_height - 50)
-                
-                # Play ghost sound effect
-                self.play_sound('ghost')
-                
-                if self.ghost_images_original:
-                    # Use actual image with fade-in
-                    image_index = random.randint(0, len(self.ghost_images_original) - 1)
-                    # Start with very low opacity
-                    photo = self.create_ghost_at_opacity(image_index, 0.01)
-                    if photo:
-                        img_id = self.canvas.create_image(x, y, image=photo)
-                        active_ghosts.append((img_id, current_time, x, y, image_index, photo))
-                elif self.ghost_images and isinstance(self.ghost_images[0], str):
-                    # Use emoji ghost (no fade for emoji)
-                    img_id = self.canvas.create_text(
-                        x, y,
-                        text=random.choice(self.ghost_images),
-                        font=("Arial", random.randint(40, 80)),
-                        fill="white"
-                    )
-                    active_ghosts.append((img_id, current_time, x, y, -1, None))
-            
-            # Update opacity of all active ghosts
-            ghosts_to_remove = []
-            for i, (img_id, spawn_time, x, y, image_index, photo_ref) in enumerate(active_ghosts):
-                ghost_age = current_time - spawn_time
-                ghost_lifetime = random.uniform(3, 5)  # Total lifetime
-                
-                if ghost_age >= ghost_lifetime:
-                    # Ghost is too old, mark for removal
-                    ghosts_to_remove.append(i)
-                    self.canvas.delete(img_id)
-                elif image_index >= 0:  # Only fade real images, not emoji
-                    # Calculate opacity based on age
-                    if ghost_age < fade_duration:
-                        # Fade in
-                        opacity = (ghost_age / fade_duration) * 0.6  # Max opacity 0.6
-                    elif ghost_age > ghost_lifetime - fade_duration:
-                        # Fade out
-                        remaining = ghost_lifetime - ghost_age
-                        opacity = (remaining / fade_duration) * 0.6
-                    else:
-                        # Full opacity
-                        opacity = 0.6
-                    
-                    # Update the image with new opacity
-                    new_photo = self.create_ghost_at_opacity(image_index, opacity)
-                    if new_photo:
-                        self.canvas.delete(img_id)
-                        new_img_id = self.canvas.create_image(x, y, image=new_photo)
-                        active_ghosts[i] = (new_img_id, spawn_time, x, y, image_index, new_photo)
-            
-            # Remove old ghosts
-            for i in reversed(ghosts_to_remove):
-                active_ghosts.pop(i)
-            
-            self.root.update()
-            time.sleep(0.05)  # Smooth animation update rate
-        
-        # Stop background music
-        self.stop_sound()
-        self.canvas.delete('all')
-    
     def load_jumpscare_image(self):
         """Load jumpscare image from ghost_images folder"""
         # Look for jumpscare.jpg in the ghost_images folder
@@ -336,7 +176,7 @@ class HauntedWindow:
         return False
     
     def show_jumpscare(self):
-        """Display jumpscare image for 3 seconds"""
+        """Display jumpscare image and wait for sound to finish"""
         # Temporarily disable click-through for jumpscare
         self.root.wm_attributes('-disabled', False)
         
@@ -366,15 +206,155 @@ class HauntedWindow:
         
         self.root.update()
         
-        # Wait 3 seconds while checking for escape
+        # Wait for jumpscare sound to finish playing
+        if self.jumpscare_sound:
+            # Keep checking if sound is still playing
+            while pygame.mixer.get_busy():
+                if self.check_for_escape() or self.should_exit:
+                    return
+                time.sleep(0.1)
+                self.root.update()
+        else:
+            # If no sound file, wait 3 seconds as fallback
+            start_time = time.time()
+            while time.time() - start_time < 3:
+                if self.check_for_escape() or self.should_exit:
+                    return
+                time.sleep(0.1)
+                self.root.update()
+        
+        self.canvas.delete('all')
+    
+    def show_black_screen_with_blink(self):
+        """Show black screen that blinks continuously, then stays for 3 seconds"""
+        self.root.wm_attributes('-disabled', False)
+        self.canvas.delete('all')
+        self.canvas.configure(bg='black')
+        self.root.update()
+        
+        # Blink continuously (no time limit)
+        is_black = True  # Start with black display
+        blink_count = 0
+        max_blinks = 8  # Number of blinks before stopping
+        
+        while blink_count < max_blinks:
+            if self.check_for_escape() or self.should_exit:
+                return
+            
+            # Toggle between two nearly-black shades to avoid white flashes
+            if is_black:
+                self.canvas.configure(bg='black')
+            else:
+                self.canvas.configure(bg='#050505')
+            
+            is_black = not is_black
+            self.root.update()
+            time.sleep(1.0)  # Slower blink speed (1 second per change)
+            blink_count += 1
+        
+        # Stay black for 3 seconds
+        self.canvas.configure(bg='black')
+        self.root.update()
         start_time = time.time()
         while time.time() - start_time < 3:
             if self.check_for_escape() or self.should_exit:
                 return
             time.sleep(0.1)
             self.root.update()
+    
+    def show_haunted_notepad(self):
+        """Show notepad appearing with random letters, then typing a message"""
+        import subprocess
+        import pyautogui
         
+        # Open notepad
+        notepad = subprocess.Popen(['notepad.exe'])
+        time.sleep(1)  # Wait for notepad to open
+
+        font_height = -18
+        subprocess.run([
+            "reg", "add", "HKCU\\Software\\Microsoft\\Notepad",
+            "/v", "lfHeight",
+            "/t", "REG_DWORD",
+            "/d", str(font_height),
+            "/f"
+        ])
+        
+        # Phase 1: Type extremely long random letters (slow to fast)
+        # Load text from random.txt file
+        random_txt_path = os.path.join(os.path.dirname(__file__), 'random.txt')
+        
+        try:
+            with open(random_txt_path, 'r', encoding='utf-8') as f:
+                random_text = f.read()
+            print(f"Loaded random.txt with {len(random_text)} characters")
+        except FileNotFoundError:
+            print("random.txt not found, using fallback random text")
+            random_text = 'abcdefghijklmnopqrstuvwxyz' * 50  # Fallback
+        
+        # Keep line breaks from the file for proper line formatting
+        # Type each character from random.txt with speed based on position
+        total_chars = len(random_text)
+        
+        for i, char in enumerate(random_text):
+            if self.check_for_escape() or self.should_exit:
+                notepad.terminate()
+                return
+            
+            # Type character from random.txt (including line breaks)
+            if char == '\n':
+                pyautogui.press('enter')
+            else:
+                pyautogui.write(char, interval=0)
+            self.play_sound('keyboard')  # Play keyboard sound
+            
+            # Slow for first 10 characters, then fast
+            if i < 10:
+                delay = 0.3  # Slow for first 10 characters
+            else:
+                delay = 0.01  # Fast for the rest
+            time.sleep(delay)
+        
+        # Phase 2: Wait 3 seconds
+        start_time = time.time()
+        while time.time() - start_time < 3:
+            if self.check_for_escape() or self.should_exit:
+                notepad.terminate()
+                return
+            time.sleep(0.1)
+        
+        # Phase 3: Go to new line and type the message in bold
+        pyautogui.press('enter')  # New line
+        time.sleep(0.3)
+        pyautogui.hotkey('ctrl', 'b')  # Bold (if supported, may not work in Notepad)
+        time.sleep(0.2)
+        
+        message = "DO NOT LOOK BACK"
+        for char in message:
+            if self.check_for_escape() or self.should_exit:
+                notepad.terminate()
+                return
+            pyautogui.write(char, interval=0)
+            self.play_sound('keyboard')  # Play keyboard sound
+            time.sleep(0.3)  # Slow typing
+        
+        # Close notepad without saving
+        notepad.terminate()
+        time.sleep(0.5)
+        
+        # Phase 4: Show black screen for 3 seconds after closing notepad
+        self.root.wm_attributes('-disabled', False)  # Make window visible
+        self.root.attributes('-alpha', 1.0)  # Make fully opaque
         self.canvas.delete('all')
+        self.canvas.configure(bg='#050505')  # Near-black so transparentcolor doesn't hide it
+        self.root.update()
+        
+        start_time = time.time()
+        while time.time() - start_time < 3:
+            if self.check_for_escape() or self.should_exit:
+                return
+            time.sleep(0.1)
+            self.root.update()
     
     def show_thank_you(self):
         """Display thank you message box"""
@@ -384,25 +364,51 @@ class HauntedWindow:
     
     def run(self):
         """Main program flow"""
-        # Step 1: Show "HAUNTED!!!" for 3 seconds
-        self.show_haunted_text()
+        # Start background music at the beginning
+        self.play_sound('background')
+        
+        # Step 1: Wait 5 seconds
+        print("Waiting 5 seconds...")
+        start_time = time.time()
+        while time.time() - start_time < 3:
+            if self.check_for_escape() or self.should_exit:
+                return
+            time.sleep(0.1)
+        
+        # Step 2: Black screen blinks for 5 seconds, then stays for 3 seconds
+        print("Black screen sequence...")
+        self.show_black_screen_with_blink()
         if self.should_exit:
             return
         
-        # Step 2: Load and show random ghost images for 3 seconds
-        self.load_ghost_images()
-        self.show_random_ghosts(duration=30)  # 30 seconds
+        # Step 3: Notepad appears with random letters and message
+        print("Notepad sequence...")
+        self.show_haunted_notepad()
         if self.should_exit:
             return
         
-        # Step 3: Show jumpscare for 3 seconds
+        # Step 4: Show jumpscare
+        print("Jumpscare!")
         self.show_jumpscare()
         if self.should_exit:
             return
         
-        # Step 4: Show thank you message
+        # Step 5: Stop all music, clear screen, and show thank you message
+        self.stop_sound()
+        self.canvas.delete('all')
+        self.canvas.configure(bg='black')
         self.show_thank_you()
 
 if __name__ == "__main__":
+    print("=" * 60)
+    print("HAUNTED WINDOW PROGRAM")
+    print("=" * 60)
+    print("\n⚠️  TO EXIT THE PROGRAM:")
+    print("   Option 1: Press ESC key (works best if you don't click away)")
+    print("   Option 2: Close this terminal window")
+    print("   Option 3: Press Ctrl+C in this terminal")
+    print("\n🎃 Starting haunted experience...\n")
+    print("=" * 60)
+    
     app = HauntedWindow()
     app.run()

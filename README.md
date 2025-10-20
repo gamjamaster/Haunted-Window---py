@@ -62,3 +62,9 @@ Enjoy your haunted experience! 👻
 - <a href="https://www.vecteezy.com/free-photos/pornographic">Pornographic Stock photos by Vecteezy</a>s
 
 - <a href="https://kr.freepik.com/free-ai-image/view-mysterious-entity-dark-foggy-room_69809215.htm#fromView=search&page=1&position=45&uuid=f176187e-746d-4e52-bb7d-2f09b7eff34d&query=%EA%B3%B5%ED%8F%AC">by freepik</a>
+
+- <a href="https://pixabay.com/ko//?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=8295387">Pixabay</a>로부터 입수된 <a href="https://pixabay.com/ko/users/abdurrehmanafridi-39043998/?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=8295387">Abdur Rehman Afridi</a>'s image
+
+- <a href="https://pixabay.com/ko//?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=7487745">Pixabay</a>로부터 입수된 <a href="https://pixabay.com/ko/users/joelfazhari-16466931/?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=7487745">Joel Fazhari</a>'s image
+
+- <a href="https://pixabay.com/ko//?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=5585847">Pixabay</a>로부터 입수된 <a href="https://pixabay.com/ko/users/fatsiberian-16583888/?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=5585847">Fat Siberian Kurts</a>'s image입니다.
