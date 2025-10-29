@@ -1,30 +1,44 @@
 # Haunted Window Program
 
-A Python program that creates a spooky haunted window experience!
+A Python program that creates a terrifying haunted experience with screen effects, automated notepad typing, and jumpscares!
 
 ## Features
 
-1. **Opening Screen**: Displays "HAUNTED!!!" in large red text for 3 seconds
-2. **Ghost Animation**: Random ghost images appear on screen for 3 minutes
-3. **Jumpscare**: A full-screen jumpscare appears for 3 seconds
-4. **Thank You Message**: A message box thanking you for executing the program
+1. **Black Screen Blinking**: The entire screen is covered in black and blinks 8 times with suspenseful timing
+2. **Haunted Notepad**: Notepad automatically opens and types random text from `random.txt`, then slowly types "DO NOT LOOK BACK"
+3. **Keyboard Sound Effects**: Each keystroke in notepad is accompanied by a typing sound for realism
+4. **Jumpscare**: A full-screen jumpscare image appears with sound effects
+5. **Background Music**: Atmospheric background music plays throughout the experience
+6. **ESC Key Support**: Press ESC at any time to safely exit the program
 
 ## Requirements
 
 Install the required packages:
 
 ```bash
-pip install pillow
+pip install pillow pygame pyautogui
 ```
 
 ## Setup
 
-### Optional: Add Custom Images
+### Required Files
 
-1. **Ghost Images**: Create a folder named `ghost_images` in the same directory as the script and add your ghost images (PNG, JPG, or GIF format)
-2. **Jumpscare Image**: Add a file named `jumpscare.png` in the same directory for the jumpscare effect
+1. **random.txt**: Create a file named `random.txt` in the project root containing the text you want the notepad to type
 
-If you don't add images, the program will use emoji ghosts (👻) and a red "BOO!!!" screen as fallbacks.
+### Optional: Add Sound Files
+
+Create a folder named `sounds` in the same directory as the script and add the following MP3 files:
+- `background.mp3` - Background music (loops continuously)
+- `keyboard.mp3` - Keyboard typing sound effect
+- `jumpscare.mp3` - Jumpscare sound effect
+- `ghost.mp3` - Ghost sound effect (optional)
+
+### Optional: Add Jumpscare Image
+
+Create a folder named `ghost_images` and add:
+- `jumpscare.jpg` - The image shown during the jumpscare
+
+If you don't add a jumpscare image, the program will show a red "BOO!!!" screen as a fallback.
 
 ## Usage
 
@@ -34,37 +48,50 @@ Run the program:
 python haunted_window.py
 ```
 
-**Note**: Press `ESC` at any time to exit the program safely.
+**Exit Options**:
+- Option 1: Press `ESC` key (works best if you don't click away)
+- Option 2: Close the terminal window
+- Option 3: Press `Ctrl+C` in the terminal
 
 ## Program Flow
 
-1. Fullscreen window opens
-2. "HAUNTED!!!" appears in red (3 seconds)
-3. Random ghost images appear and disappear (3 minutes)
-4. Jumpscare fills the screen (3 seconds)
-5. Thank you message box appears
-6. Program exits
+1. **Wait**: Program waits 3 seconds after execution
+2. **Black Screen Blink**: Screen blinks black 8 times (1 second per blink), then stays black for 3 seconds
+3. **Haunted Notepad Sequence**:
+   - All existing notepad windows are closed
+   - A fresh notepad window opens
+   - Font size is set to 18pt via registry
+   - Types contents of `random.txt` character by character (slow start, then fast)
+   - Pauses for 3 seconds
+   - Types "DO NOT LOOK BACK" slowly on a new line
+   - Notepad closes automatically
+   - Black screen appears for 3 seconds
+4. **Jumpscare**: Full-screen jumpscare image/effect with sound
+5. **Thank You**: Message box appears thanking you for executing
+6. **Exit**: Program closes
+
+## Technical Details
+
+- **Transparent Window**: Uses tkinter with transparency and click-through capabilities
+- **Fullscreen Effect**: Window covers entire screen and stays on top
+- **Sound System**: pygame mixer for audio playback with sound synchronization
+- **Keyboard Automation**: pyautogui for typing simulation in notepad
+- **Registry Editing**: Modifies Windows registry to set notepad font size
+- **Process Management**: Uses subprocess and taskkill to manage notepad windows
 
 ## Customization
 
 You can modify the following in the code:
 
-- Duration of ghost animation (default: 180 seconds/3 minutes)
-- Ghost spawn rate (adjust the probability in `show_random_ghosts`)
-- Ghost size and appearance time
-- Text and colors for the opening and jumpscare screens
+- Blink count and speed in `show_black_screen_with_blink()`
+- Typing speed in `show_haunted_notepad()` (currently: 0.3s for first 10 chars, 0.01s for rest)
+- Message text (currently: "DO NOT LOOK BACK")
+- Font size via the `font_height` variable (currently: -18)
+- Wait durations between sequences
 
-Enjoy your haunted experience! 👻
+Enjoy your haunted experience! 👻🎃
 
 ## License
 - Music by <a href="https://pixabay.com/users/pulsebox-52068281/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=420687">PulseBox</a> from <a href="https://pixabay.com//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=420687">Pixabay</a>
 
-- <a href="https://www.vecteezy.com/free-photos/pornographic">Pornographic Stock photos by Vecteezy</a>s
-
-- <a href="https://kr.freepik.com/free-ai-image/view-mysterious-entity-dark-foggy-room_69809215.htm#fromView=search&page=1&position=45&uuid=f176187e-746d-4e52-bb7d-2f09b7eff34d&query=%EA%B3%B5%ED%8F%AC">by freepik</a>
-
-- <a href="https://pixabay.com/ko//?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=8295387">Pixabay</a>로부터 입수된 <a href="https://pixabay.com/ko/users/abdurrehmanafridi-39043998/?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=8295387">Abdur Rehman Afridi</a>'s image
-
-- <a href="https://pixabay.com/ko//?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=7487745">Pixabay</a>로부터 입수된 <a href="https://pixabay.com/ko/users/joelfazhari-16466931/?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=7487745">Joel Fazhari</a>'s image
-
-- <a href="https://pixabay.com/ko//?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=5585847">Pixabay</a>로부터 입수된 <a href="https://pixabay.com/ko/users/fatsiberian-16583888/?utm_source=link-attribution&utm_medium=referral&utm_campaign=image&utm_content=5585847">Fat Siberian Kurts</a>'s image입니다.
+<a href="https://www.vecteezy.com/free-photos/inanimate">Inanimate Stock photos by Vecteezy</a>
